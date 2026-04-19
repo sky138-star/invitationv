@@ -31,7 +31,7 @@ document.querySelectorAll(".fade").forEach(el => {
 });
 
 // COUNTDOWN
-const targetDate = new Date("Dec 12, 2026 00:00:00").getTime();
+const targetDate = new Date("August 17, 2026 00:00:00").getTime();
 
 setInterval(() => {
   const now = new Date().getTime();
