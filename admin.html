@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Admin Dashboard</title>
+<title>Admin Panel</title>
 
 <style>
 body {
@@ -16,6 +15,12 @@ body {
 
 h2 {
   text-align: center;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
 
 .card {
@@ -33,59 +38,78 @@ button {
   padding: 6px 10px;
   border-radius: 5px;
   cursor: pointer;
+  margin-top: 5px;
 }
 
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
+input, select {
+  padding: 8px;
+  margin: 5px;
 }
 </style>
-
 </head>
 
 <body>
 
 <div class="topbar">
-  <h2>Admin Panel</h2>
+  <h2>Superuser Panel</h2>
   <button onclick="logout()">Logout</button>
 </div>
 
-<div id="data"></div>
+<!-- CREATE USER -->
+<div class="card">
+  <h3>Buat User Baru</h3>
+
+  <input id="newUsername" placeholder="Username">
+  <input id="newEmail" placeholder="Email">
+  <input id="newPassword" placeholder="Password">
+
+  <select id="newRole">
+    <option value="user">User</option>
+    <option value="admin">Admin</option>
+  </select>
+
+  <br>
+  <button onclick="createUser()">Buat User</button>
+</div>
+
+<!-- LIST USER -->
+<div class="card">
+  <h3>Daftar User</h3>
+  <div id="userList"></div>
+</div>
 
 <script type="module">
+import { auth, db, register } from "./firebase.js";
 
-import { getAuth, onAuthStateChanged, signOut } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-import { 
-  getFirestore, 
-  collection, 
-  onSnapshot, 
-  deleteDoc, 
-  doc 
+import {
+  getDoc,
+  doc,
+  collection,
+  onSnapshot,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { initializeApp } 
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAhAxJTpyNDPaEFVMtr5j5oEDjx-8mSYTg",
-  authDomain: "invitely-905b7.firebaseapp.com",
-  projectId: "invitely-905b7",
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// 🔐 PROTEKSI LOGIN
-onAuthStateChanged(auth, (user) => {
+// 🔐 PROTEKSI SUPERUSER
+onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
-  } else {
-    loadData();
+    return;
   }
+
+  const snap = await getDoc(doc(db, "users", user.uid));
+  const role = snap.data().role;
+
+  if (role !== "superuser") {
+    alert("Akses hanya untuk superuser");
+    window.location.href = "index.html";
+  }
+
+  loadUsers();
 });
 
 // 🚪 LOGOUT
@@ -93,11 +117,31 @@ window.logout = function () {
   signOut(auth);
 };
 
-// 📊 LOAD DATA REALTIME
-function loadData() {
-  const container = document.getElementById("data");
+// 🔥 BUAT USER
+window.createUser = async function () {
+  const username = document.getElementById("newUsername").value;
+  const email = document.getElementById("newEmail").value;
+  const password = document.getElementById("newPassword").value;
+  const role = document.getElementById("newRole").value;
 
-  onSnapshot(collection(db, "ucapan"), (snapshot) => {
+  if (!username || !email || !password) {
+    alert("Isi semua field");
+    return;
+  }
+
+  try {
+    await register(username, email, password, role);
+    alert("User berhasil dibuat");
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+// 📊 LOAD USER LIST
+function loadUsers() {
+  const container = document.getElementById("userList");
+
+  onSnapshot(collection(db, "users"), (snapshot) => {
     container.innerHTML = "";
 
     snapshot.forEach(docSnap => {
@@ -105,20 +149,14 @@ function loadData() {
 
       container.innerHTML += `
         <div class="card">
-          <b>${d.nama}</b>
-          <p>${d.pesan}</p>
-          <button onclick="hapus('${docSnap.id}')">Hapus</button>
+          <b>${d.username}</b><br>
+          ${d.email}<br>
+          Role: ${d.role}
         </div>
       `;
     });
   });
 }
-
-// 🧹 HAPUS DATA
-window.hapus = async function (id) {
-  await deleteDoc(doc(db, "ucapan", id));
-};
-
 </script>
 
 </body>
