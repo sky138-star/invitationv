@@ -1,1 +1,51 @@
+body {
+  margin:0;
+  font-family:Poppins;
+  text-align:center;
+  color:white;
+}
 
+#bg-video {
+  position:fixed;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  z-index:-1;
+}
+
+#envelope {
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+}
+
+.flap {
+  width:200px;
+  height:100px;
+  background:#c9a96e;
+  transform-origin:top;
+  transition:1s;
+}
+
+.letter {
+  background:white;
+  color:black;
+  padding:20px;
+}
+
+.open .flap {
+  transform:rotateX(180deg);
+}
+
+.fade {
+  opacity:0;
+  transform:translateY(20px);
+  transition:1s;
+}
+
+.fade.show {
+  opacity:1;
+  transform:none;
+}
