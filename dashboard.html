@@ -33,12 +33,6 @@ button {
   cursor: pointer;
   width: 100%;
 }
-
-img.preview {
-  width: 100%;
-  margin-top: 10px;
-  border-radius: 10px;
-}
 </style>
 </head>
 
@@ -72,6 +66,8 @@ img.preview {
   <input id="wanita" placeholder="Nama Wanita">
   <input id="tanggal" type="date">
   <input id="lokasi" placeholder="Lokasi">
+
+  <input id="tamu" placeholder="Nama Tamu (opsional)">
 
   <label>Background Video</label>
   <input type="file" id="bgFile">
@@ -115,42 +111,59 @@ let editId = null;
 let currentRole = null;
 let currentData = null;
 
-// 🔐 AUTH + ROLE CHECK
+// 🔐 AUTH + ROLE CHECK (ANTI ERROR)
 onAuthStateChanged(auth, async (user) => {
 
-  if (!user) {
-    window.location.href = "login.html";
-    return;
+  try {
+
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    const snap = await getDoc(doc(db, "users", user.uid));
+
+    if (!snap.exists()) {
+      alert("User tidak ditemukan di database");
+      document.body.style.display = "block";
+      return;
+    }
+
+    const role = snap.data().role;
+    currentRole = role;
+
+    if (role !== "superuser" && role !== "admin") {
+      window.location.href = "index.html";
+      return;
+    }
+
+    if (role === "superuser") {
+      document.getElementById("superuserPanel").classList.remove("hidden");
+      loadUsers();
+    }
+
+    document.body.style.display = "block";
+    loadInvitations();
+
+  } catch (e) {
+    console.error(e);
+    document.body.style.display = "block";
   }
-
-  const snap = await getDoc(doc(db, "users", user.uid));
-  const role = snap.data().role;
-
-  if (role !== "superuser" && role !== "admin") {
-    window.location.href = "index.html";
-    return;
-  }
-
-  currentRole = role;
-
-  if (role === "superuser") {
-    document.getElementById("superuserPanel").classList.remove("hidden");
-    loadUsers();
-  }
-
-  document.body.style.display = "block";
-  loadInvitations();
 });
 
 // 🔥 CREATE USER
 window.buatUser = async function () {
-  await register(
-    su_username.value,
-    su_email.value,
-    su_password.value,
-    su_role.value
-  );
-  alert("User dibuat");
+  try {
+    await register(
+      su_username.value,
+      su_email.value,
+      su_password.value,
+      su_role.value
+    );
+    alert("User berhasil dibuat");
+  } catch (e) {
+    alert(e.message);
+  }
 };
 
 // 🔥 LOAD USERS
@@ -167,7 +180,7 @@ function loadUsers() {
   });
 }
 
-// 💍 SIMPAN (CREATE / UPDATE)
+// 💍 SIMPAN (UPLOAD + TAMU + EDIT SAFE)
 window.simpan = async function () {
 
   const user = auth.currentUser;
@@ -176,7 +189,7 @@ window.simpan = async function () {
   let g1 = currentData?.gallery?.[0] || "";
   let g2 = currentData?.gallery?.[1] || "";
 
-  // upload hanya jika ada file baru
+  // upload jika ada file
   if (bgFile.files[0]) {
     bgUrl = await uploadFile(bgFile.files[0], "bg/" + Date.now());
   }
@@ -189,6 +202,8 @@ window.simpan = async function () {
     g2 = await uploadFile(gallery2File.files[0], "gallery/" + Date.now() + "_2");
   }
 
+  const tamuValue = document.getElementById("tamu").value;
+
   const data = {
     userId: user.uid,
     pria: pria.value,
@@ -196,7 +211,8 @@ window.simpan = async function () {
     tanggal: tanggal.value,
     lokasi: lokasi.value,
     background: bgUrl,
-    gallery: [g1, g2]
+    gallery: [g1, g2],
+    tamu: tamuValue
   };
 
   if (!data.pria || !data.wanita || !data.tanggal) {
@@ -209,7 +225,11 @@ window.simpan = async function () {
     alert("Updated");
   } else {
     const docRef = await addDoc(collection(db, "invitations"), data);
-    hasil.innerText = "Link: invitation.html?id=" + docRef.id;
+
+    hasil.innerText =
+      "Link: invitation.html?id=" + docRef.id +
+      "&to=" + encodeURIComponent(tamuValue || "Tamu Undangan");
+
     alert("Created");
   }
 
@@ -240,9 +260,10 @@ async function loadInvitations() {
     const d = docSnap.data();
 
     list.innerHTML += `
-      <div>
+      <div style="border-top:1px solid #eee;padding:10px 0;">
         <b>${d.pria} & ${d.wanita}</b><br>
         ${d.tanggal}<br>
+        Tamu: ${d.tamu || "-"}<br>
 
         <button onclick="edit('${docSnap.id}')">Edit</button>
       </div>
@@ -264,6 +285,7 @@ window.edit = async function (id) {
   wanita.value = d.wanita;
   tanggal.value = d.tanggal;
   lokasi.value = d.lokasi || "";
+  tamu.value = d.tamu || "";
 };
 
 // 🔄 RESET
@@ -275,6 +297,7 @@ function resetForm() {
   wanita.value = "";
   tanggal.value = "";
   lokasi.value = "";
+  tamu.value = "";
 }
 </script>
 
