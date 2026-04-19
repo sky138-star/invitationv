@@ -11,12 +11,16 @@ body {
   padding: 20px;
 }
 
+h2, h3 {
+  text-align: center;
+}
+
 .card {
   background: white;
   padding: 20px;
+  margin: 10px auto;
   border-radius: 10px;
   max-width: 500px;
-  margin: auto;
 }
 
 input {
@@ -32,6 +36,12 @@ button {
   border: none;
   color: white;
   cursor: pointer;
+  margin-top: 10px;
+}
+
+.list-card {
+  border-top: 1px solid #eee;
+  padding: 10px 0;
 }
 </style>
 </head>
@@ -39,7 +49,7 @@ button {
 <body>
 
 <div class="card">
-  <h2>Buat Undangan</h2>
+  <h2>Editor Undangan</h2>
 
   <input id="pria" placeholder="Nama Pria">
   <input id="wanita" placeholder="Nama Wanita">
@@ -51,31 +61,45 @@ button {
   <input id="gallery1" placeholder="Gallery 1 URL">
   <input id="gallery2" placeholder="Gallery 2 URL">
 
-  <button onclick="simpanUndangan()">Simpan</button>
+  <button onclick="simpan()">Simpan</button>
 
   <p id="hasil"></p>
 </div>
 
+<div class="card">
+  <h3>Daftar Undangan</h3>
+  <div id="list"></div>
+</div>
+
 <script type="module">
 import { auth, db } from "./firebase.js";
+
 import {
+  collection,
   addDoc,
-  collection
+  getDocs,
+  getDoc,
+  updateDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+let editId = null;
+
 // 🔐 PROTEKSI LOGIN
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = "login.html";
+  } else {
+    loadList();
   }
 });
 
-// 🚀 SIMPAN UNDANGAN
-window.simpanUndangan = async function () {
+// 🔥 SIMPAN / UPDATE
+window.simpan = async function () {
 
   const user = auth.currentUser;
 
@@ -84,39 +108,96 @@ window.simpanUndangan = async function () {
     return;
   }
 
-  const pria = document.getElementById("pria").value;
-  const wanita = document.getElementById("wanita").value;
-  const tanggal = document.getElementById("tanggal").value;
-  const lokasi = document.getElementById("lokasi").value;
-  const background = document.getElementById("background").value;
-
-  const gallery = [
-    document.getElementById("gallery1").value,
-    document.getElementById("gallery2").value
-  ];
-
-  // VALIDASI
-  if (!pria || !wanita || !tanggal) {
-    alert("Data wajib belum lengkap");
-    return;
-  }
-
   const data = {
     userId: user.uid,
-    pria,
-    wanita,
-    tanggal,
-    lokasi,
-    background,
-    gallery,
+    pria: pria.value,
+    wanita: wanita.value,
+    tanggal: tanggal.value,
+    lokasi: lokasi.value,
+    background: background.value,
+    gallery: [gallery1.value, gallery2.value],
     createdAt: Date.now()
   };
 
-  const docRef = await addDoc(collection(db, "invitations"), data);
+  if (!data.pria || !data.wanita || !data.tanggal) {
+    alert("Isi data wajib");
+    return;
+  }
 
-  document.getElementById("hasil").innerText =
-    "Link: invitation.html?id=" + docRef.id;
+  try {
+
+    if (editId) {
+      await updateDoc(doc(db, "invitations", editId), data);
+      alert("Berhasil diupdate");
+      editId = null;
+    } else {
+      const docRef = await addDoc(collection(db, "invitations"), data);
+
+      hasil.innerText =
+        "Link: invitation.html?id=" + docRef.id;
+
+      alert("Berhasil dibuat");
+    }
+
+    resetForm();
+    loadList();
+
+  } catch (e) {
+    alert(e.message);
+  }
 };
+
+// 🔥 LOAD LIST
+async function loadList() {
+
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  const snapshot = await getDocs(collection(db, "invitations"));
+
+  snapshot.forEach(docSnap => {
+    const d = docSnap.data();
+
+    list.innerHTML += `
+      <div class="list-card">
+        <b>${d.pria} & ${d.wanita}</b><br>
+        ${d.tanggal}<br>
+        ${d.lokasi || ""}<br>
+
+        <button onclick="edit('${docSnap.id}')">Edit</button>
+      </div>
+    `;
+  });
+}
+
+// 🔥 EDIT DATA
+window.edit = async function (id) {
+
+  editId = id;
+
+  const snap = await getDoc(doc(db, "invitations", id));
+  const d = snap.data();
+
+  pria.value = d.pria;
+  wanita.value = d.wanita;
+  tanggal.value = d.tanggal;
+  lokasi.value = d.lokasi || "";
+  background.value = d.background || "";
+
+  gallery1.value = d.gallery?.[0] || "";
+  gallery2.value = d.gallery?.[1] || "";
+};
+
+// 🔄 RESET FORM
+function resetForm() {
+  pria.value = "";
+  wanita.value = "";
+  tanggal.value = "";
+  lokasi.value = "";
+  background.value = "";
+  gallery1.value = "";
+  gallery2.value = "";
+}
 </script>
 
 </body>
