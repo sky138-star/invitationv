@@ -1,0 +1,26 @@
+<h2>Buat Undangan</h2>
+
+<input id="pria" placeholder="Nama Pria">
+<input id="wanita" placeholder="Nama Wanita">
+<input id="tanggal" type="date">
+
+<button onclick="buat()">Generate</button>
+
+<p id="hasil"></p>
+
+<script type="module">
+import { createInvitation } from './firebase.js';
+
+async function buat() {
+  const data = {
+    pria: document.getElementById("pria").value,
+    wanita: document.getElementById("wanita").value,
+    tanggal: document.getElementById("tanggal").value
+  };
+
+  const docRef = await createInvitation(data);
+
+  document.getElementById("hasil").innerText =
+    "Link: invitation.html?id=" + docRef.id;
+}
+</script>
