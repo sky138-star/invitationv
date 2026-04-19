@@ -1,1 +1,13 @@
+.theme-elegant {
+  --main-color: #c9a96e;
+}
 
+.theme-dark {
+  background:#111;
+  color:white;
+}
+
+.theme-floral {
+  background:#f8e1e7;
+  color:#333;
+}
