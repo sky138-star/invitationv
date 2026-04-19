@@ -36,7 +36,7 @@ button {
 </style>
 </head>
 
-<body style="display:none;">
+<body>
 
 <h2>Dashboard</h2>
 
@@ -111,43 +111,53 @@ let editId = null;
 let currentRole = null;
 let currentData = null;
 
-// 🔐 AUTH + ROLE CHECK (ANTI ERROR)
+// 🔐 AUTH CHECK (ANTI BLANK)
 onAuthStateChanged(auth, async (user) => {
+
+  console.log("Auth:", user);
 
   try {
 
     if (!user) {
+      alert("Silakan login terlebih dahulu");
       window.location.href = "login.html";
       return;
     }
 
-    const snap = await getDoc(doc(db, "users", user.uid));
+    let role = "user";
 
-    if (!snap.exists()) {
-      alert("User tidak ditemukan di database");
-      document.body.style.display = "block";
-      return;
+    try {
+      const snap = await getDoc(doc(db, "users", user.uid));
+
+      if (snap.exists()) {
+        role = snap.data().role;
+      } else {
+        console.warn("User tidak ada di Firestore");
+      }
+
+    } catch (e) {
+      console.error("Error ambil role:", e);
     }
 
-    const role = snap.data().role;
-    currentRole = role;
+    console.log("ROLE:", role);
 
     if (role !== "superuser" && role !== "admin") {
+      alert("Akses ditolak");
       window.location.href = "index.html";
       return;
     }
+
+    currentRole = role;
 
     if (role === "superuser") {
       document.getElementById("superuserPanel").classList.remove("hidden");
       loadUsers();
     }
 
-    document.body.style.display = "block";
     loadInvitations();
 
   } catch (e) {
-    console.error(e);
-    document.body.style.display = "block";
+    console.error("FATAL:", e);
   }
 });
 
@@ -180,7 +190,7 @@ function loadUsers() {
   });
 }
 
-// 💍 SIMPAN (UPLOAD + TAMU + EDIT SAFE)
+// 💍 SIMPAN
 window.simpan = async function () {
 
   const user = auth.currentUser;
@@ -189,17 +199,16 @@ window.simpan = async function () {
   let g1 = currentData?.gallery?.[0] || "";
   let g2 = currentData?.gallery?.[1] || "";
 
-  // upload jika ada file
   if (bgFile.files[0]) {
     bgUrl = await uploadFile(bgFile.files[0], "bg/" + Date.now());
   }
 
   if (gallery1File.files[0]) {
-    g1 = await uploadFile(gallery1File.files[0], "gallery/" + Date.now() + "_1");
+    g1 = await uploadFile(gallery1File.files[0], "gallery/" + Date.now());
   }
 
   if (gallery2File.files[0]) {
-    g2 = await uploadFile(gallery2File.files[0], "gallery/" + Date.now() + "_2");
+    g2 = await uploadFile(gallery2File.files[0], "gallery/" + Date.now());
   }
 
   const tamuValue = document.getElementById("tamu").value;
