@@ -11,18 +11,18 @@ import {
   collection,
   addDoc,
   getDoc,
-  getDocs,
   doc,
   setDoc,
   query,
-  where
+  where,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// CONFIG
+// 🔥 CONFIG (ISI PUNYA KAMU)
 const firebaseConfig = {
   apiKey: "AIzaSyAhAxJTpyNDPaEFVMtr5j5oEDjx-8mSYTg",
   authDomain: "invitely-905b7.firebaseapp.com",
-  projectId: "nvitely-905b7",
+  projectId: "invitely-905b7",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -30,9 +30,18 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 //
-// 🔐 REGISTER (pakai username)
+// 🔐 REGISTER USER (dengan username)
 //
 async function register(username, email, password, role = "user") {
+
+  // cek username unik
+  const q = query(collection(db, "users"), where("username", "==", username));
+  const snap = await getDocs(q);
+
+  if (!snap.empty) {
+    throw new Error("Username sudah dipakai");
+  }
+
   const userCred = await createUserWithEmailAndPassword(auth, email, password);
 
   await setDoc(doc(db, "users", userCred.user.uid), {
@@ -50,13 +59,15 @@ async function register(username, email, password, role = "user") {
 async function loginWithUsername(username, password) {
 
   const q = query(collection(db, "users"), where("username", "==", username));
-  const querySnapshot = await getDocs(q);
+  const snapshot = await getDocs(q);
 
-  if (querySnapshot.empty) {
+  console.log("JUMLAH DATA:", snapshot.size);
+
+  if (snapshot.empty) {
     throw new Error("Username tidak ditemukan");
   }
 
-  const userData = querySnapshot.docs[0].data();
+  const userData = snapshot.docs[0].data();
   const email = userData.email;
 
   return await signInWithEmailAndPassword(auth, email, password);
