@@ -11,10 +11,6 @@ body {
   padding: 20px;
 }
 
-h2 {
-  text-align: center;
-}
-
 .card {
   background: white;
   padding: 20px;
@@ -23,9 +19,7 @@ h2 {
   max-width: 600px;
 }
 
-.hidden {
-  display: none;
-}
+.hidden { display: none; }
 
 input, select {
   width: 100%;
@@ -34,24 +28,25 @@ input, select {
 }
 
 button {
-  padding: 8px;
+  padding: 10px;
   margin-top: 5px;
   cursor: pointer;
   width: 100%;
 }
 
-.list-item {
-  border-top: 1px solid #eee;
-  padding: 10px 0;
+img.preview {
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 10px;
 }
 </style>
 </head>
 
-<body>
+<body style="display:none;">
 
 <h2>Dashboard</h2>
 
-<!-- 🔐 SUPERUSER PANEL -->
+<!-- SUPERUSER -->
 <div id="superuserPanel" class="card hidden">
   <h3>Superuser Panel</h3>
 
@@ -69,7 +64,7 @@ button {
   <div id="userList"></div>
 </div>
 
-<!-- 💍 UNDANGAN -->
+<!-- UNDANGAN -->
 <div class="card">
   <h3>Editor Undangan</h3>
 
@@ -78,9 +73,14 @@ button {
   <input id="tanggal" type="date">
   <input id="lokasi" placeholder="Lokasi">
 
-  <input id="background" placeholder="URL Background Video">
-  <input id="gallery1" placeholder="Gallery 1 URL">
-  <input id="gallery2" placeholder="Gallery 2 URL">
+  <label>Background Video</label>
+  <input type="file" id="bgFile">
+
+  <label>Gallery 1</label>
+  <input type="file" id="gallery1File">
+
+  <label>Gallery 2</label>
+  <input type="file" id="gallery2File">
 
   <button onclick="simpan()">Simpan</button>
 
@@ -93,7 +93,7 @@ button {
 </div>
 
 <script type="module">
-import { auth, db, register } from "./firebase.js";
+import { auth, db, register, uploadFile } from "./firebase.js";
 
 import {
   collection,
@@ -113,8 +113,9 @@ import {
 
 let editId = null;
 let currentRole = null;
+let currentData = null;
 
-// 🔐 ROLE CHECK + PROTECTION
+// 🔐 AUTH + ROLE CHECK
 onAuthStateChanged(auth, async (user) => {
 
   if (!user) {
@@ -123,74 +124,70 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   const snap = await getDoc(doc(db, "users", user.uid));
+  const role = snap.data().role;
 
-  if (!snap.exists()) {
-    alert("User tidak valid");
-    window.location.href = "login.html";
-    return;
-  }
-
-  const data = snap.data();
-  currentRole = data.role;
-
-  // ❌ BLOK USER BIASA
-  if (currentRole !== "superuser" && currentRole !== "admin") {
-    alert("Akses ditolak");
+  if (role !== "superuser" && role !== "admin") {
     window.location.href = "index.html";
     return;
   }
 
-  // 👑 SUPERUSER PANEL
-  if (currentRole === "superuser") {
+  currentRole = role;
+
+  if (role === "superuser") {
     document.getElementById("superuserPanel").classList.remove("hidden");
     loadUsers();
   }
 
+  document.body.style.display = "block";
   loadInvitations();
 });
 
-
-// 🔥 CREATE USER (SUPERUSER ONLY)
+// 🔥 CREATE USER
 window.buatUser = async function () {
-  try {
-    await register(
-      su_username.value,
-      su_email.value,
-      su_password.value,
-      su_role.value
-    );
-
-    alert("User berhasil dibuat");
-  } catch (e) {
-    alert(e.message);
-  }
+  await register(
+    su_username.value,
+    su_email.value,
+    su_password.value,
+    su_role.value
+  );
+  alert("User dibuat");
 };
 
-
-// 📊 LOAD USERS
+// 🔥 LOAD USERS
 function loadUsers() {
-  const container = document.getElementById("userList");
+  const el = document.getElementById("userList");
 
-  onSnapshot(collection(db, "users"), (snapshot) => {
-    container.innerHTML = "";
+  onSnapshot(collection(db, "users"), (snap) => {
+    el.innerHTML = "";
 
-    snapshot.forEach(docSnap => {
-      const d = docSnap.data();
-
-      container.innerHTML += `
-        <div class="list-item">
-          ${d.username} (${d.role})
-        </div>
-      `;
+    snap.forEach(doc => {
+      const d = doc.data();
+      el.innerHTML += `<div>${d.username} (${d.role})</div>`;
     });
   });
 }
 
-
-// 💍 SIMPAN / UPDATE UNDANGAN
+// 💍 SIMPAN (CREATE / UPDATE)
 window.simpan = async function () {
 
   const user = auth.currentUser;
+
+  let bgUrl = currentData?.background || "";
+  let g1 = currentData?.gallery?.[0] || "";
+  let g2 = currentData?.gallery?.[1] || "";
+
+  // upload hanya jika ada file baru
+  if (bgFile.files[0]) {
+    bgUrl = await uploadFile(bgFile.files[0], "bg/" + Date.now());
+  }
+
+  if (gallery1File.files[0]) {
+    g1 = await uploadFile(gallery1File.files[0], "gallery/" + Date.now() + "_1");
+  }
+
+  if (gallery2File.files[0]) {
+    g2 = await uploadFile(gallery2File.files[0], "gallery/" + Date.now() + "_2");
+  }
 
   const data = {
     userId: user.uid,
@@ -198,8 +195,8 @@ window.simpan = async function () {
     wanita: wanita.value,
     tanggal: tanggal.value,
     lokasi: lokasi.value,
-    background: background.value,
-    gallery: [gallery1.value, gallery2.value]
+    background: bgUrl,
+    gallery: [g1, g2]
   };
 
   if (!data.pria || !data.wanita || !data.tanggal) {
@@ -207,31 +204,20 @@ window.simpan = async function () {
     return;
   }
 
-  try {
-
-    if (editId) {
-      await updateDoc(doc(db, "invitations", editId), data);
-      alert("Berhasil diupdate");
-      editId = null;
-    } else {
-      const docRef = await addDoc(collection(db, "invitations"), data);
-
-      hasil.innerText =
-        "Link: invitation.html?id=" + docRef.id;
-
-      alert("Berhasil dibuat");
-    }
-
-    resetForm();
-    loadInvitations();
-
-  } catch (e) {
-    alert(e.message);
+  if (editId) {
+    await updateDoc(doc(db, "invitations", editId), data);
+    alert("Updated");
+  } else {
+    const docRef = await addDoc(collection(db, "invitations"), data);
+    hasil.innerText = "Link: invitation.html?id=" + docRef.id;
+    alert("Created");
   }
+
+  resetForm();
+  loadInvitations();
 };
 
-
-// 📊 LOAD UNDANGAN (FILTERED)
+// 📊 LOAD UNDANGAN
 async function loadInvitations() {
 
   const list = document.getElementById("list");
@@ -248,13 +234,13 @@ async function loadInvitations() {
     );
   }
 
-  const snapshot = await getDocs(q);
+  const snap = await getDocs(q);
 
-  snapshot.forEach(docSnap => {
+  snap.forEach(docSnap => {
     const d = docSnap.data();
 
     list.innerHTML += `
-      <div class="list-item">
+      <div>
         <b>${d.pria} & ${d.wanita}</b><br>
         ${d.tanggal}<br>
 
@@ -264,7 +250,6 @@ async function loadInvitations() {
   });
 }
 
-
 // ✏️ EDIT
 window.edit = async function (id) {
 
@@ -273,26 +258,23 @@ window.edit = async function (id) {
   const snap = await getDoc(doc(db, "invitations", id));
   const d = snap.data();
 
+  currentData = d;
+
   pria.value = d.pria;
   wanita.value = d.wanita;
   tanggal.value = d.tanggal;
   lokasi.value = d.lokasi || "";
-  background.value = d.background || "";
-
-  gallery1.value = d.gallery?.[0] || "";
-  gallery2.value = d.gallery?.[1] || "";
 };
-
 
 // 🔄 RESET
 function resetForm() {
+  editId = null;
+  currentData = null;
+
   pria.value = "";
   wanita.value = "";
   tanggal.value = "";
   lokasi.value = "";
-  background.value = "";
-  gallery1.value = "";
-  gallery2.value = "";
 }
 </script>
 
