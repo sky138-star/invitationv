@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Undangan Pernikahan</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Poppins&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: #fdf8f3;
+  color: #333;
+  text-align: center;
+}
+
+h1, h2 {
+  font-family: 'Playfair Display', serif;
+}
+
+.container {
+  padding: 20px;
+}
+
+.hero {
+  height: 100vh;
+  background: url('https://images.unsplash.com/photo-1522673607200-164d1b6ce486') center/cover;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: white;
+}
+
+.overlay {
+  background: rgba(0,0,0,0.4);
+  padding: 20px;
+}
+
+.button {
+  background: #c9a96e;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  margin-top: 20px;
+  cursor: pointer;
+  border-radius: 30px;
+}
+
+.section {
+  padding: 50px 20px;
+}
+
+.fade {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: 1s;
+}
+
+.fade.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+input, select {
+  padding: 10px;
+  width: 80%;
+  margin: 10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="overlay">
+    <p>Kepada Yth:</p>
+    <h2 id="guest">Tamu Undangan</h2>
+    <h1>Andi & Sari</h1>
+    <button class="button" onclick="openInvite()">Buka Undangan</button>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div id="content" style="display:none">
+
+<div class="section fade">
+  <h2>Save The Date</h2>
+  <p>12 Desember 2026</p>
+</div>
+
+<div class="section fade">
+  <h2>Lokasi</h2>
+  <iframe 
+    src="https://maps.google.com/maps?q=jakarta&t=&z=13&ie=UTF8&iwloc=&output=embed"
+    width="90%" height="250"></iframe>
+</div>
+
+<div class="section fade">
+  <h2>RSVP</h2>
+  <input type="text" id="nama" placeholder="Nama">
+  <select id="hadir">
+    <option value="Hadir">Hadir</option>
+    <option value="Tidak">Tidak Hadir</option>
+  </select>
+  <br>
+  <button class="button" onclick="kirimRSVP()">Kirim</button>
+</div>
+
+</div>
+
+<!-- MUSIC -->
+<audio id="music" loop>
+  <source src="https://www.bensound.com/bensound-music/bensound-romantic.mp3">
+</audio>
+
+<script>
+// PERSONALIZATION
+const urlParams = new URLSearchParams(window.location.search);
+const guestName = urlParams.get('to');
+if (guestName) {
+  document.getElementById("guest").innerText = guestName;
+}
+
+// OPEN INVITE
+function openInvite() {
+  document.querySelector('.hero').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+  document.getElementById('music').play();
+
+  document.querySelectorAll('.fade').forEach((el, i) => {
+    setTimeout(() => el.classList.add('show'), i * 300);
+  });
+}
+
+// RSVP (WhatsApp redirect)
+function kirimRSVP() {
+  const nama = document.getElementById('nama').value;
+  const hadir = document.getElementById('hadir').value;
+
+  const text = `Halo, saya ${nama}, konfirmasi: ${hadir}`;
+  const url = `https://wa.me/628123456789?text=${encodeURIComponent(text)}`;
+
+  window.open(url, '_blank');
+}
+</script>
+
+</body>
+</html>
