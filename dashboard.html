@@ -11,55 +11,66 @@ body {
   padding: 20px;
 }
 
-h2, h3 {
-  text-align: center;
-}
-
 .card {
   background: white;
   padding: 20px;
   margin: 10px auto;
   border-radius: 10px;
-  max-width: 500px;
+  max-width: 600px;
 }
 
-input {
-  width: 100%;
-  padding: 10px;
-  margin: 8px 0;
+.hidden {
+  display: none;
 }
 
 button {
-  width: 100%;
-  padding: 10px;
-  background: #c9a96e;
-  border: none;
-  color: white;
+  padding: 8px;
+  margin-top: 5px;
   cursor: pointer;
-  margin-top: 10px;
 }
 
-.list-card {
-  border-top: 1px solid #eee;
-  padding: 10px 0;
+input, select {
+  width: 100%;
+  padding: 8px;
+  margin: 5px 0;
 }
 </style>
 </head>
 
 <body>
 
+<h2>Dashboard</h2>
+
+<!-- 🔐 SUPERUSER ONLY -->
+<div id="superuserPanel" class="card hidden">
+  <h3>Superuser Panel</h3>
+
+  <input id="su_username" placeholder="Username">
+  <input id="su_email" placeholder="Email">
+  <input id="su_password" placeholder="Password">
+
+  <select id="su_role">
+    <option value="user">User</option>
+    <option value="admin">Admin</option>
+  </select>
+
+  <button onclick="buatUser()">Buat User</button>
+
+  <div id="userList"></div>
+</div>
+
+<!-- 💍 UNDANGAN -->
 <div class="card">
-  <h2>Editor Undangan</h2>
+  <h3>Editor Undangan</h3>
 
   <input id="pria" placeholder="Nama Pria">
   <input id="wanita" placeholder="Nama Wanita">
   <input id="tanggal" type="date">
   <input id="lokasi" placeholder="Lokasi">
 
-  <input id="background" placeholder="URL Background Video">
-
-  <input id="gallery1" placeholder="Gallery 1 URL">
-  <input id="gallery2" placeholder="Gallery 2 URL">
+  <input id="background" placeholder="URL Background">
+  <input id="gallery1" placeholder="Gallery 1">
+  <input id="gallery2" placeholder="Gallery 2">
 
   <button onclick="simpan()">Simpan</button>
 
@@ -72,7 +83,7 @@ button {
 </div>
 
 <script type="module">
-import { auth, db } from "./firebase.js";
+import { auth, db, register } from "./firebase.js";
 
 import {
   collection,
@@ -80,7 +91,8 @@ import {
   getDocs,
   getDoc,
   updateDoc,
-  doc
+  doc,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -88,67 +100,89 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 let editId = null;
+let currentRole = null;
 
-// 🔐 PROTEKSI LOGIN
-onAuthStateChanged(auth, (user) => {
+// 🔐 CEK ROLE
+onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
-  } else {
-    loadList();
-  }
-});
-
-// 🔥 SIMPAN / UPDATE
-window.simpan = async function () {
-
-  const user = auth.currentUser;
-
-  if (!user) {
-    alert("Belum login");
     return;
   }
 
+  const snap = await getDoc(doc(db, "users", user.uid));
+  const data = snap.data();
+
+  currentRole = data.role;
+
+  // tampilkan superuser panel
+  if (currentRole === "superuser") {
+    document.getElementById("superuserPanel").classList.remove("hidden");
+    loadUsers();
+  }
+
+  loadInvitations();
+});
+
+// 🔥 CREATE USER (SUPERUSER)
+window.buatUser = async function () {
+  await register(
+    su_username.value,
+    su_email.value,
+    su_password.value,
+    su_role.value
+  );
+
+  alert("User dibuat");
+};
+
+// 🔥 LOAD USERS
+function loadUsers() {
+  const container = document.getElementById("userList");
+
+  onSnapshot(collection(db, "users"), (snapshot) => {
+    container.innerHTML = "";
+
+    snapshot.forEach(docSnap => {
+      const d = docSnap.data();
+
+      container.innerHTML += `
+        <div>
+          ${d.username} (${d.role})
+        </div>
+      `;
+    });
+  });
+}
+
+// 💍 SIMPAN UNDANGAN
+window.simpan = async function () {
+
   const data = {
-    userId: user.uid,
     pria: pria.value,
     wanita: wanita.value,
     tanggal: tanggal.value,
     lokasi: lokasi.value,
     background: background.value,
     gallery: [gallery1.value, gallery2.value],
-    createdAt: Date.now()
+    userId: auth.currentUser.uid
   };
 
-  if (!data.pria || !data.wanita || !data.tanggal) {
-    alert("Isi data wajib");
-    return;
+  if (editId) {
+    await updateDoc(doc(db, "invitations", editId), data);
+    alert("Updated");
+    editId = null;
+  } else {
+    const docRef = await addDoc(collection(db, "invitations"), data);
+    hasil.innerText = "Link: invitation.html?id=" + docRef.id;
+    alert("Created");
   }
 
-  try {
-
-    if (editId) {
-      await updateDoc(doc(db, "invitations", editId), data);
-      alert("Berhasil diupdate");
-      editId = null;
-    } else {
-      const docRef = await addDoc(collection(db, "invitations"), data);
-
-      hasil.innerText =
-        "Link: invitation.html?id=" + docRef.id;
-
-      alert("Berhasil dibuat");
-    }
-
-    resetForm();
-    loadList();
-
-  } catch (e) {
-    alert(e.message);
-  }
+  resetForm();
+  loadInvitations();
 };
 
-// 🔥 LOAD LIST
-async function loadList() {
+// 📊 LOAD UNDANGAN
+async function loadInvitations() {
 
   const list = document.getElementById("list");
   list.innerHTML = "";
@@ -159,18 +193,15 @@ async function loadList() {
     const d = docSnap.data();
 
     list.innerHTML += `
-      <div class="list-card">
-        <b>${d.pria} & ${d.wanita}</b><br>
-        ${d.tanggal}<br>
-        ${d.lokasi || ""}<br>
-
+      <div>
+        ${d.pria} & ${d.wanita}
         <button onclick="edit('${docSnap.id}')">Edit</button>
       </div>
     `;
   });
 }
 
-// 🔥 EDIT DATA
+// ✏️ EDIT
 window.edit = async function (id) {
 
   editId = id;
@@ -188,7 +219,7 @@ window.edit = async function (id) {
   gallery2.value = d.gallery?.[1] || "";
 };
 
-// 🔄 RESET FORM
+// 🔄 RESET
 function resetForm() {
   pria.value = "";
   wanita.value = "";
