@@ -1,0 +1,17 @@
+<h1 id="nama"></h1>
+
+<script type="module">
+import { getInvitation } from './firebase.js';
+
+const params = new URLSearchParams(window.location.search);
+const id = params.get("id");
+
+async function load() {
+  const data = await getInvitation(id);
+
+  document.getElementById("nama").innerText =
+    data.pria + " & " + data.wanita;
+}
+
+load();
+</script>
