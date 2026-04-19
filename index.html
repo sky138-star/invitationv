@@ -5,47 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Undangan Pernikahan</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Poppins&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&family=Poppins&display=swap" rel="stylesheet">
 
 <style>
 body {
   margin: 0;
   font-family: 'Poppins', sans-serif;
   background: #fdf8f3;
-  color: #333;
   text-align: center;
 }
 
-h1, h2 {
+h1,h2 {
   font-family: 'Playfair Display', serif;
-}
-
-.container {
-  padding: 20px;
 }
 
 .hero {
   height: 100vh;
-  background: url('https://images.unsplash.com/photo-1522673607200-164d1b6ce486') center/cover;
+  background: url('https://images.unsplash.com/photo-1519741497674-611481863552') center/cover;
   display: flex;
-  flex-direction: column;
   justify-content: center;
+  align-items: center;
   color: white;
 }
 
 .overlay {
-  background: rgba(0,0,0,0.4);
-  padding: 20px;
+  background: rgba(0,0,0,0.5);
+  padding: 30px;
+  border-radius: 10px;
 }
 
 .button {
   background: #c9a96e;
-  color: white;
-  padding: 12px 24px;
   border: none;
-  margin-top: 20px;
-  cursor: pointer;
+  padding: 12px 25px;
+  color: white;
   border-radius: 30px;
+  cursor: pointer;
 }
 
 .section {
@@ -63,22 +58,26 @@ h1, h2 {
   transform: translateY(0);
 }
 
-input, select {
-  padding: 10px;
-  width: 80%;
-  margin: 10px;
+.gallery img {
+  width: 90%;
+  margin: 10px 0;
+  border-radius: 10px;
 }
 
+.countdown {
+  font-size: 20px;
+  margin-top: 10px;
+}
 </style>
 </head>
 
 <body>
 
-<!-- HERO -->
+<!-- OPENING -->
 <div class="hero">
   <div class="overlay">
     <p>Kepada Yth:</p>
-    <h2 id="guest">Tamu Undangan</h2>
+    <h2 id="guest">JOKOWI</h2>
     <h1>Hansen & Ayu</h1>
     <button class="button" onclick="openInvite()">Buka Undangan</button>
   </div>
@@ -90,23 +89,29 @@ input, select {
 <div class="section fade">
   <h2>Save The Date</h2>
   <p>12 Desember 2026</p>
+  <div class="countdown" id="countdown"></div>
 </div>
 
 <div class="section fade">
   <h2>Lokasi</h2>
-  <iframe 
-    src="https://maps.google.com/maps?q=jakarta&t=&z=13&ie=UTF8&iwloc=&output=embed"
-    width="90%" height="250"></iframe>
+  <iframe src="https://maps.google.com/maps?q=jakarta&t=&z=13&ie=UTF8&iwloc=&output=embed"
+  width="90%" height="250"></iframe>
+</div>
+
+<div class="section fade gallery">
+  <h2>Gallery</h2>
+  <img src="https://images.unsplash.com/photo-1520857014576-2c4f4c972b57">
+  <img src="https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0">
+  <img src="https://images.unsplash.com/photo-1529636798458-92182e662485">
 </div>
 
 <div class="section fade">
   <h2>RSVP</h2>
-  <input type="text" id="nama" placeholder="Nama">
+  <input type="text" id="nama" placeholder="Nama"><br>
   <select id="hadir">
     <option value="Hadir">Hadir</option>
-    <option value="Tidak">Tidak Hadir</option>
-  </select>
-  <br>
+    <option value="Tidak Hadir">Tidak Hadir</option>
+  </select><br><br>
   <button class="button" onclick="kirimRSVP()">Kirim</button>
 </div>
 
@@ -121,9 +126,7 @@ input, select {
 // PERSONALIZATION
 const urlParams = new URLSearchParams(window.location.search);
 const guestName = urlParams.get('to');
-if (guestName) {
-  document.getElementById("guest").innerText = guestName;
-}
+if (guestName) document.getElementById("guest").innerText = guestName;
 
 // OPEN INVITE
 function openInvite() {
@@ -136,7 +139,21 @@ function openInvite() {
   });
 }
 
-// RSVP (WhatsApp redirect)
+// COUNTDOWN
+const targetDate = new Date("Dec 12, 2026 00:00:00").getTime();
+setInterval(() => {
+  const now = new Date().getTime();
+  const gap = targetDate - now;
+
+  const d = Math.floor(gap / (1000*60*60*24));
+  const h = Math.floor((gap / (1000*60*60)) % 24);
+  const m = Math.floor((gap / (1000*60)) % 60);
+
+  document.getElementById("countdown").innerText =
+    d + " hari " + h + " jam " + m + " menit";
+}, 1000);
+
+// RSVP WA
 function kirimRSVP() {
   const nama = document.getElementById('nama').value;
   const hadir = document.getElementById('hadir').value;
