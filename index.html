@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Wedding Invitation</title>
+<title>Undangan</title>
 
 <link rel="stylesheet" href="style.css">
 
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&family=Poppins&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Poppins&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -17,42 +16,28 @@
 <div id="opening">
   <div class="opening-content">
     <p>Kepada Yth:</p>
-    <h2 id="guest">Hansen Tiono</h2>
+    <h2 id="guest">Tamu Undangan</h2>
     <button onclick="openInvite()">Buka Undangan</button>
   </div>
 </div>
 
-<!-- BACKGROUND VIDEO -->
-<video autoplay muted loop id="bg-video">
-  <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4">
-</video>
+<!-- VIDEO BACKGROUND -->
+<video autoplay muted loop id="bg-video"></video>
 
-<!-- MAIN CONTENT -->
+<!-- MAIN -->
 <div id="main">
 
 <section class="hero fade">
   <div class="overlay">
-    <h1 class="hero-title">Apip & Ayu</h1>
-    <p>17 Agustus 2026</p>
+    <h1 class="hero-title">...</h1>
+    <p class="date"></p>
+    <p class="lokasi"></p>
   </div>
 </section>
 
 <section class="section fade">
-  <h2>Save The Date</h2>
-  <div id="countdown"></div>
-</section>
-
-<section class="section fade">
-  <h2>Lokasi</h2>
-  <iframe 
-    src="https://maps.google.com/maps?q=jakarta&t=&z=13&ie=UTF8&iwloc=&output=embed"
-    width="90%" height="250"></iframe>
-</section>
-
-<section class="section fade">
   <h2>Gallery</h2>
-  <img src="https://images.unsplash.com/photo-1520857014576-2c4f4c972b57">
-  <img src="https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0">
+  <div id="gallery"></div>
 </section>
 
 </div>
@@ -62,7 +47,7 @@
   <source src="https://www.bensound.com/bensound-music/bensound-romantic.mp3">
 </audio>
 
-<script src="script.js"></script>
+<script type="module" src="script.js"></script>
 
 </body>
 </html>
