@@ -1,18 +1,71 @@
-<h2>Buat Undangan</h2>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
 
-<input id="pria" placeholder="Nama Pria">
-<input id="wanita" placeholder="Nama Wanita">
-<input id="tanggal" type="date">
+<style>
+body {
+  font-family: Poppins;
+  background: #f4f4f4;
+  padding: 20px;
+}
 
-<button onclick="buat()">Generate</button>
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 500px;
+  margin: auto;
+}
 
-<p id="hasil"></p>
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #c9a96e;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>Buat Undangan</h2>
+
+  <input id="pria" placeholder="Nama Pria">
+  <input id="wanita" placeholder="Nama Wanita">
+  <input id="tanggal" type="date">
+  <input id="lokasi" placeholder="Lokasi">
+
+  <input id="background" placeholder="URL Background Video">
+
+  <input id="gallery1" placeholder="Gallery 1 URL">
+  <input id="gallery2" placeholder="Gallery 2 URL">
+
+  <button onclick="simpanUndangan()">Simpan</button>
+
+  <p id="hasil"></p>
+</div>
 
 <script type="module">
-import { createInvitation } from './firebase.js';
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { auth, db } from "./firebase.js";
+import {
+  addDoc,
+  collection
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const auth = getAuth();
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // 🔐 PROTEKSI LOGIN
 onAuthStateChanged(auth, (user) => {
@@ -21,27 +74,50 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// 🚀 FUNCTION GENERATE
-window.buat = async function () {
+// 🚀 SIMPAN UNDANGAN
+window.simpanUndangan = async function () {
+
+  const user = auth.currentUser;
+
+  if (!user) {
+    alert("Belum login");
+    return;
+  }
+
   const pria = document.getElementById("pria").value;
   const wanita = document.getElementById("wanita").value;
   const tanggal = document.getElementById("tanggal").value;
+  const lokasi = document.getElementById("lokasi").value;
+  const background = document.getElementById("background").value;
+
+  const gallery = [
+    document.getElementById("gallery1").value,
+    document.getElementById("gallery2").value
+  ];
 
   // VALIDASI
   if (!pria || !wanita || !tanggal) {
-    alert("Semua field harus diisi");
+    alert("Data wajib belum lengkap");
     return;
   }
 
   const data = {
+    userId: user.uid,
     pria,
     wanita,
-    tanggal
+    tanggal,
+    lokasi,
+    background,
+    gallery,
+    createdAt: Date.now()
   };
 
-  const docRef = await createInvitation(data);
+  const docRef = await addDoc(collection(db, "invitations"), data);
 
   document.getElementById("hasil").innerText =
     "Link: invitation.html?id=" + docRef.id;
 };
 </script>
+
+</body>
+</html>
