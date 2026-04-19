@@ -1,3 +1,120 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+
+<style>
+body {
+  font-family: Poppins;
+  background: #f4f4f4;
+  padding: 20px;
+}
+
+h2 {
+  text-align: center;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  margin: 10px auto;
+  border-radius: 10px;
+  max-width: 600px;
+}
+
+.hidden {
+  display: none;
+}
+
+input, select {
+  width: 100%;
+  padding: 8px;
+  margin: 5px 0;
+}
+
+button {
+  padding: 8px;
+  margin-top: 5px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.list-item {
+  border-top: 1px solid #eee;
+  padding: 10px 0;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Dashboard</h2>
+
+<!-- 🔐 SUPERUSER PANEL -->
+<div id="superuserPanel" class="card hidden">
+  <h3>Superuser Panel</h3>
+
+  <input id="su_username" placeholder="Username">
+  <input id="su_email" placeholder="Email">
+  <input id="su_password" placeholder="Password">
+
+  <select id="su_role">
+    <option value="user">User</option>
+    <option value="admin">Admin</option>
+  </select>
+
+  <button onclick="buatUser()">Buat User</button>
+
+  <div id="userList"></div>
+</div>
+
+<!-- 💍 UNDANGAN -->
+<div class="card">
+  <h3>Editor Undangan</h3>
+
+  <input id="pria" placeholder="Nama Pria">
+  <input id="wanita" placeholder="Nama Wanita">
+  <input id="tanggal" type="date">
+  <input id="lokasi" placeholder="Lokasi">
+
+  <input id="background" placeholder="URL Background Video">
+  <input id="gallery1" placeholder="Gallery 1 URL">
+  <input id="gallery2" placeholder="Gallery 2 URL">
+
+  <button onclick="simpan()">Simpan</button>
+
+  <p id="hasil"></p>
+</div>
+
+<div class="card">
+  <h3>Daftar Undangan</h3>
+  <div id="list"></div>
+</div>
+
+<script type="module">
+import { auth, db, register } from "./firebase.js";
+
+import {
+  collection,
+  addDoc,
+  getDocs,
+  getDoc,
+  updateDoc,
+  doc,
+  query,
+  where,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+import {
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+let editId = null;
+let currentRole = null;
+
+// 🔐 ROLE CHECK + PROTECTION
 onAuthStateChanged(auth, async (user) => {
 
   if (!user) {
@@ -13,22 +130,171 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
-  const role = snap.data().role;
+  const data = snap.data();
+  currentRole = data.role;
 
-  // 🔴 BLOK USER BIASA
-  if (role !== "superuser" && role !== "admin") {
+  // ❌ BLOK USER BIASA
+  if (currentRole !== "superuser" && currentRole !== "admin") {
     alert("Akses ditolak");
     window.location.href = "index.html";
     return;
   }
 
-  // ✅ IZINKAN
-  currentRole = role;
-
-  if (role === "superuser") {
+  // 👑 SUPERUSER PANEL
+  if (currentRole === "superuser") {
     document.getElementById("superuserPanel").classList.remove("hidden");
     loadUsers();
   }
 
   loadInvitations();
 });
+
+
+// 🔥 CREATE USER (SUPERUSER ONLY)
+window.buatUser = async function () {
+  try {
+    await register(
+      su_username.value,
+      su_email.value,
+      su_password.value,
+      su_role.value
+    );
+
+    alert("User berhasil dibuat");
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+
+// 📊 LOAD USERS
+function loadUsers() {
+  const container = document.getElementById("userList");
+
+  onSnapshot(collection(db, "users"), (snapshot) => {
+    container.innerHTML = "";
+
+    snapshot.forEach(docSnap => {
+      const d = docSnap.data();
+
+      container.innerHTML += `
+        <div class="list-item">
+          ${d.username} (${d.role})
+        </div>
+      `;
+    });
+  });
+}
+
+
+// 💍 SIMPAN / UPDATE UNDANGAN
+window.simpan = async function () {
+
+  const user = auth.currentUser;
+
+  const data = {
+    userId: user.uid,
+    pria: pria.value,
+    wanita: wanita.value,
+    tanggal: tanggal.value,
+    lokasi: lokasi.value,
+    background: background.value,
+    gallery: [gallery1.value, gallery2.value]
+  };
+
+  if (!data.pria || !data.wanita || !data.tanggal) {
+    alert("Isi data wajib");
+    return;
+  }
+
+  try {
+
+    if (editId) {
+      await updateDoc(doc(db, "invitations", editId), data);
+      alert("Berhasil diupdate");
+      editId = null;
+    } else {
+      const docRef = await addDoc(collection(db, "invitations"), data);
+
+      hasil.innerText =
+        "Link: invitation.html?id=" + docRef.id;
+
+      alert("Berhasil dibuat");
+    }
+
+    resetForm();
+    loadInvitations();
+
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+
+// 📊 LOAD UNDANGAN (FILTERED)
+async function loadInvitations() {
+
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  let q;
+
+  if (currentRole === "superuser") {
+    q = collection(db, "invitations");
+  } else {
+    q = query(
+      collection(db, "invitations"),
+      where("userId", "==", auth.currentUser.uid)
+    );
+  }
+
+  const snapshot = await getDocs(q);
+
+  snapshot.forEach(docSnap => {
+    const d = docSnap.data();
+
+    list.innerHTML += `
+      <div class="list-item">
+        <b>${d.pria} & ${d.wanita}</b><br>
+        ${d.tanggal}<br>
+
+        <button onclick="edit('${docSnap.id}')">Edit</button>
+      </div>
+    `;
+  });
+}
+
+
+// ✏️ EDIT
+window.edit = async function (id) {
+
+  editId = id;
+
+  const snap = await getDoc(doc(db, "invitations", id));
+  const d = snap.data();
+
+  pria.value = d.pria;
+  wanita.value = d.wanita;
+  tanggal.value = d.tanggal;
+  lokasi.value = d.lokasi || "";
+  background.value = d.background || "";
+
+  gallery1.value = d.gallery?.[0] || "";
+  gallery2.value = d.gallery?.[1] || "";
+};
+
+
+// 🔄 RESET
+function resetForm() {
+  pria.value = "";
+  wanita.value = "";
+  tanggal.value = "";
+  lokasi.value = "";
+  background.value = "";
+  gallery1.value = "";
+  gallery2.value = "";
+}
+</script>
+
+</body>
+</html>
