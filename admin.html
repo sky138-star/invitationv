@@ -2,19 +2,13 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel</title>
 
 <style>
 body {
   font-family: Poppins;
   background: #f4f4f4;
-  margin: 0;
   padding: 20px;
-}
-
-h2 {
-  text-align: center;
 }
 
 .topbar {
@@ -28,22 +22,19 @@ h2 {
   padding: 15px;
   margin: 10px 0;
   border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
 button {
   background: #c0392b;
   color: white;
   border: none;
-  padding: 6px 10px;
-  border-radius: 5px;
+  padding: 6px;
   cursor: pointer;
-  margin-top: 5px;
 }
 
 input, select {
-  padding: 8px;
   margin: 5px;
+  padding: 8px;
 }
 </style>
 </head>
@@ -57,36 +48,34 @@ input, select {
 
 <!-- CREATE USER -->
 <div class="card">
-  <h3>Buat User Baru</h3>
+  <h3>Buat User</h3>
 
-  <input id="newUsername" placeholder="Username">
-  <input id="newEmail" placeholder="Email">
-  <input id="newPassword" placeholder="Password">
+  <input id="username" placeholder="Username">
+  <input id="email" placeholder="Email">
+  <input id="password" placeholder="Password">
 
-  <select id="newRole">
+  <select id="role">
     <option value="user">User</option>
     <option value="admin">Admin</option>
   </select>
 
-  <br>
-  <button onclick="createUser()">Buat User</button>
+  <button onclick="buatUser()">Buat</button>
 </div>
 
-<!-- LIST USER -->
+<!-- USER LIST -->
 <div class="card">
   <h3>Daftar User</h3>
-  <div id="userList"></div>
+  <div id="list"></div>
 </div>
 
 <script type="module">
 import { auth, db, register } from "./firebase.js";
 
 import {
-  getDoc,
-  doc,
   collection,
   onSnapshot,
-  updateDoc
+  getDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -94,7 +83,7 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// 🔐 PROTEKSI SUPERUSER
+// 🔐 PROTECT SUPERUSER
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
@@ -105,24 +94,24 @@ onAuthStateChanged(auth, async (user) => {
   const role = snap.data().role;
 
   if (role !== "superuser") {
-    alert("Akses hanya untuk superuser");
+    alert("Akses ditolak");
     window.location.href = "index.html";
   }
 
   loadUsers();
 });
 
-// 🚪 LOGOUT
+// LOGOUT
 window.logout = function () {
   signOut(auth);
 };
 
-// 🔥 BUAT USER
-window.createUser = async function () {
-  const username = document.getElementById("newUsername").value;
-  const email = document.getElementById("newEmail").value;
-  const password = document.getElementById("newPassword").value;
-  const role = document.getElementById("newRole").value;
+// CREATE USER
+window.buatUser = async function () {
+  const username = document.getElementById("username").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const role = document.getElementById("role").value;
 
   if (!username || !email || !password) {
     alert("Isi semua field");
@@ -137,17 +126,17 @@ window.createUser = async function () {
   }
 };
 
-// 📊 LOAD USER LIST
+// LOAD USERS
 function loadUsers() {
-  const container = document.getElementById("userList");
+  const list = document.getElementById("list");
 
   onSnapshot(collection(db, "users"), (snapshot) => {
-    container.innerHTML = "";
+    list.innerHTML = "";
 
     snapshot.forEach(docSnap => {
       const d = docSnap.data();
 
-      container.innerHTML += `
+      list.innerHTML += `
         <div class="card">
           <b>${d.username}</b><br>
           ${d.email}<br>
