@@ -3,167 +3,66 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Undangan Pernikahan</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&family=Poppins&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="themes.css">
 
-<style>
-body {
-  margin: 0;
-  font-family: 'Poppins', sans-serif;
-  background: #fdf8f3;
-  text-align: center;
-}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Poppins&display=swap" rel="stylesheet">
 
-h1,h2 {
-  font-family: 'Playfair Display', serif;
-}
-
-.hero {
-  height: 100vh;
-  background: url('https://images.unsplash.com/photo-1519741497674-611481863552') center/cover;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
-}
-
-.overlay {
-  background: rgba(0,0,0,0.5);
-  padding: 30px;
-  border-radius: 10px;
-}
-
-.button {
-  background: #c9a96e;
-  border: none;
-  padding: 12px 25px;
-  color: white;
-  border-radius: 30px;
-  cursor: pointer;
-}
-
-.section {
-  padding: 50px 20px;
-}
-
-.fade {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: 1s;
-}
-
-.fade.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.gallery img {
-  width: 90%;
-  margin: 10px 0;
-  border-radius: 10px;
-}
-
-.countdown {
-  font-size: 20px;
-  margin-top: 10px;
-}
-</style>
 </head>
+<body class="theme-elegant">
 
-<body>
-
-<!-- OPENING -->
-<div class="hero">
-  <div class="overlay">
+<!-- ENVELOPE OPENING -->
+<div id="envelope">
+  <div class="flap"></div>
+  <div class="letter">
     <p>Kepada Yth:</p>
-    <h2 id="guest">JOKOWI</h2>
-    <h1>Hansen & Ayu</h1>
-    <button class="button" onclick="openInvite()">Buka Undangan</button>
+    <h2 id="guest">Tamu Undangan</h2>
+    <button onclick="openInvite()">Buka Undangan</button>
   </div>
 </div>
 
-<!-- CONTENT -->
+<!-- VIDEO BACKGROUND -->
+<video autoplay muted loop id="bg-video">
+  <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4">
+</video>
+
+<!-- MAIN CONTENT -->
 <div id="content" style="display:none">
 
-<div class="section fade">
-  <h2>Save The Date</h2>
+<section class="fade">
+  <h1>Andi & Sari</h1>
   <p>12 Desember 2026</p>
-  <div class="countdown" id="countdown"></div>
-</div>
+  <div id="countdown"></div>
+</section>
 
-<div class="section fade">
-  <h2>Lokasi</h2>
-  <iframe src="https://maps.google.com/maps?q=jakarta&t=&z=13&ie=UTF8&iwloc=&output=embed"
-  width="90%" height="250"></iframe>
-</div>
-
-<div class="section fade gallery">
+<section class="fade">
   <h2>Gallery</h2>
   <img src="https://images.unsplash.com/photo-1520857014576-2c4f4c972b57">
-  <img src="https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0">
-  <img src="https://images.unsplash.com/photo-1529636798458-92182e662485">
-</div>
+</section>
 
-<div class="section fade">
-  <h2>RSVP</h2>
-  <input type="text" id="nama" placeholder="Nama"><br>
-  <select id="hadir">
-    <option value="Hadir">Hadir</option>
-    <option value="Tidak Hadir">Tidak Hadir</option>
-  </select><br><br>
-  <button class="button" onclick="kirimRSVP()">Kirim</button>
-</div>
+<section class="fade">
+  <h2>Ucapan</h2>
+  <input id="nama" placeholder="Nama">
+  <input id="pesan" placeholder="Ucapan">
+  <button onclick="kirimUcapan()">Kirim</button>
+
+  <div id="listUcapan"></div>
+</section>
 
 </div>
 
-<!-- MUSIC -->
 <audio id="music" loop>
   <source src="https://www.bensound.com/bensound-music/bensound-romantic.mp3">
 </audio>
 
-<script>
-// PERSONALIZATION
-const urlParams = new URLSearchParams(window.location.search);
-const guestName = urlParams.get('to');
-if (guestName) document.getElementById("guest").innerText = guestName;
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
 
-// OPEN INVITE
-function openInvite() {
-  document.querySelector('.hero').style.display = 'none';
-  document.getElementById('content').style.display = 'block';
-  document.getElementById('music').play();
-
-  document.querySelectorAll('.fade').forEach((el, i) => {
-    setTimeout(() => el.classList.add('show'), i * 300);
-  });
-}
-
-// COUNTDOWN
-const targetDate = new Date("Dec 12, 2026 00:00:00").getTime();
-setInterval(() => {
-  const now = new Date().getTime();
-  const gap = targetDate - now;
-
-  const d = Math.floor(gap / (1000*60*60*24));
-  const h = Math.floor((gap / (1000*60*60)) % 24);
-  const m = Math.floor((gap / (1000*60)) % 60);
-
-  document.getElementById("countdown").innerText =
-    d + " hari " + h + " jam " + m + " menit";
-}, 1000);
-
-// RSVP WA
-function kirimRSVP() {
-  const nama = document.getElementById('nama').value;
-  const hadir = document.getElementById('hadir').value;
-
-  const text = `Halo, saya ${nama}, konfirmasi: ${hadir}`;
-  const url = `https://wa.me/628123456789?text=${encodeURIComponent(text)}`;
-
-  window.open(url, '_blank');
-}
-</script>
+<script src="firebase.js"></script>
+<script src="script.js"></script>
 
 </body>
 </html>
