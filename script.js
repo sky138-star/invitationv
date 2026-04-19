@@ -1,27 +1,46 @@
-// personalization
+// PERSONALIZATION
 const params = new URLSearchParams(window.location.search);
-document.getElementById("guest").innerText = params.get("to") || "Tamu";
-
-// open envelope
-function openInvite() {
-  document.getElementById("envelope").classList.add("open");
-  setTimeout(() => {
-    document.getElementById("envelope").style.display = "none";
-    document.getElementById("content").style.display = "block";
-    document.getElementById("music").play();
-
-    document.querySelectorAll(".fade").forEach((el,i)=>{
-      setTimeout(()=>el.classList.add("show"), i*300);
-    });
-
-  },1000);
+const guest = params.get("to");
+if (guest) {
+  document.getElementById("guest").innerText = guest;
 }
 
-// countdown
-const target = new Date("Dec 12, 2026").getTime();
-setInterval(()=>{
-  let now = new Date().getTime();
-  let gap = target-now;
-  let d = Math.floor(gap/(1000*60*60*24));
-  document.getElementById("countdown").innerText = d+" hari lagi";
-},1000);
+// OPEN INVITE
+function openInvite() {
+  const opening = document.getElementById("opening");
+
+  opening.style.opacity = "0";
+
+  setTimeout(() => {
+    opening.style.display = "none";
+    document.getElementById("music").play();
+  }, 800);
+}
+
+// SCROLL ANIMATION
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add("show");
+    }
+  });
+});
+
+document.querySelectorAll(".fade").forEach(el => {
+  observer.observe(el);
+});
+
+// COUNTDOWN
+const targetDate = new Date("Dec 12, 2026 00:00:00").getTime();
+
+setInterval(() => {
+  const now = new Date().getTime();
+  const gap = targetDate - now;
+
+  const d = Math.floor(gap / (1000*60*60*24));
+  const h = Math.floor((gap / (1000*60*60)) % 24);
+  const m = Math.floor((gap / (1000*60)) % 60);
+
+  document.getElementById("countdown").innerText =
+    d + " hari " + h + " jam " + m + " menit";
+}, 1000);
