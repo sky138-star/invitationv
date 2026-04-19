@@ -1,0 +1,15 @@
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<button onclick="loginUser()">Login</button>
+
+<script type="module">
+import { login } from './firebase.js';
+
+async function loginUser() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  await login(email, password);
+  alert("Login berhasil");
+}
+</script>
